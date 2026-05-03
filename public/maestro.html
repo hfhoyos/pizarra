@@ -1,3 +1,19 @@
+window.addEventListener('message', (event) => {
+    if (event.data.type === 'sala_creada') {
+        const salaId = event.data.salaId;
+        console.log('📨 Pizarra recibió sala:', salaId);
+        const codigoDiv = document.getElementById('codigoDisplay');
+        if (codigoDiv) {
+            codigoDiv.innerHTML = `🔑 Código de sala: <strong>${salaId}</strong>`;
+        }
+        // Inicializar la pizarra
+        if (typeof initSlides === 'function') {
+            initSlides(salaId);
+        }
+    }
+});
+
+
 <!-- public/maestro.html - v11 con lista de espectadores conectados -->
 
 <script>
