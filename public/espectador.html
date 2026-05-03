@@ -1,5 +1,25 @@
 <!-- public/espectador.html - v11 con login -->
 
+<script>
+    window.addEventListener('message', (event) => {
+        if (event.data.type === 'full_state') {
+            const estado = event.data.estado;
+            // Aplicar estado recibido (pizarra visible/oculta, etc.)
+            if (estado.pizarraVisible !== undefined) {
+                const pizarraContainer = document.getElementById('pizarraContainer');
+                if (pizarraContainer) {
+                    if (estado.pizarraVisible) pizarraContainer.classList.remove('hidden');
+                    else pizarraContainer.classList.add('hidden');
+                }
+            }
+            // Recibir código de sala
+            if (event.data.salaId) {
+                document.getElementById('codigoDisplay').innerHTML = `🔑 Sala: ${event.data.salaId}`;
+            }
+        }
+    });
+</script>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
