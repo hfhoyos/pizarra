@@ -1,0 +1,511 @@
+<!-- public/espectador.html - v11 con login -->
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👁️ ESPECTADOR - Pizarrón v11</title>
+    <style>
+        * { user-select: none; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #0f1724, #0a0f1a);
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; width: 100%; background: rgba(0,0,0,0.4); border-radius: 2rem; padding: 1.5rem; }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        h1 { color: #88ccff; margin: 0; font-size: 1.5rem; }
+        .export-header-btn {
+            background: #4c9f70;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            font-size: 0.9rem;
+        }
+        .export-header-btn:hover { background: #3d8a5e; }
+        
+        .badge {
+            text-align: center;
+            background: #2c3e2f;
+            padding: 6px;
+            border-radius: 40px;
+            margin-bottom: 20px;
+            color: #ffd966;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .master-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #1e2b24;
+            padding: 4px 12px;
+            border-radius: 30px;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4caf50;
+            box-shadow: 0 0 5px #4caf50;
+            animation: pulse 1.5s infinite;
+        }
+        .status-dot.offline {
+            background: #888;
+            box-shadow: none;
+            animation: none;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.4; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1.2); }
+        }
+        
+        .btn-audio-toggle {
+            background: #4c9f70;
+            border: none;
+            padding: 6px 15px;
+            border-radius: 30px;
+            cursor: pointer;
+            color: white;
+            font-size: 0.7rem;
+        }
+        .btn-audio-active {
+            background: #e06c6c;
+        }
+        
+        .canvas-wrapper { background: #1E272E; border-radius: 28px; padding: 12px; text-align: center; }
+        canvas { background: white; border-radius: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.3); cursor: default; max-width: 100%; height: auto; }
+        
+        .textboxes-panel {
+            margin-top: 20px;
+            background: #1e2b24;
+            border-radius: 28px;
+            padding: 15px;
+            min-height: 100px;
+        }
+        .textbox-card {
+            background: #2d3e3a;
+            border-radius: 20px;
+            padding: 12px 15px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .textbox-label {
+            font-weight: bold;
+            color: #ffd966;
+            min-width: 80px;
+            font-size: 0.9rem;
+        }
+        .textbox-input {
+            flex: 3;
+            padding: 10px 15px;
+            border-radius: 40px;
+            border: 1px solid #88ccff;
+            background: #1a2a2a;
+            color: white;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        .copy-btn {
+            background: #4c9f70;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+        }
+        .copy-btn:hover { background: #3d8a5e; }
+        .status { font-size: 0.7rem; color: #ffaa66; text-align: center; margin-top: 12px; }
+        .slide-indicator {
+            text-align: center;
+            background: #1e2b24;
+            padding: 8px;
+            border-radius: 40px;
+            margin-bottom: 15px;
+            color: #ffd966;
+            font-weight: bold;
+        }
+        .back-link { text-align: center; margin-top: 15px; }
+        .back-link a { color: #88ccff; text-decoration: none; font-size: 0.8rem; }
+        
+        .empty-texts-message {
+            text-align: center;
+            color: #888;
+            padding: 30px;
+            font-style: italic;
+        }
+        .badge-pro {
+            background: #ffd966;
+            color: #2d2b1f;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            margin-left: 10px;
+        }
+        .codigo-input {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .codigo-input input {
+            padding: 10px 18px;
+            border-radius: 40px;
+            border: 1px solid #ffd966;
+            background: #2d3e3a;
+            color: white;
+            font-size: 1rem;
+            text-align: center;
+            font-family: monospace;
+            width: 200px;
+        }
+        .codigo-input button {
+            background: #4c9f70;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+        }
+        .login-panel {
+            background: #1e2b24;
+            border-radius: 28px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .login-panel input {
+            padding: 12px 20px;
+            border-radius: 40px;
+            border: 1px solid #ffd966;
+            background: #2d3e3a;
+            color: white;
+            font-size: 1rem;
+            width: 250px;
+            text-align: center;
+        }
+        .login-panel button {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>👁️ ESPECTADOR - Pizarrón v11 <span class="badge-pro">+ AUDIO</span></h1>
+        <button id="exportPngBtn" class="export-header-btn">💾 Exportar PNG</button>
+    </div>
+    
+    <div id="loginPanel" class="login-panel">
+        <h3 style="color:#ffd966; margin-bottom: 15px;">🔐 Ingresa a la sala</h3>
+        <input type="text" id="nombreInput" placeholder="Tu nombre" maxlength="30">
+        <input type="text" id="codigoSalaInput" placeholder="Código de sala" maxlength="8">
+        <button id="unirseBtn">🔗 Unirse</button>
+    </div>
+    
+    <div id="mainContent" style="display: none;">
+        <div class="badge">
+            <span>🔒 Modo espectador</span>
+            <div class="master-status" id="masterStatus">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="masterStatusText">Desconectado</span>
+            </div>
+        </div>
+        
+        <div class="slide-indicator" id="slideIndicator">📄 Diapositiva 1 / 1</div>
+        
+        <div class="canvas-wrapper">
+            <canvas id="mirrorCanvas" width="800" height="500"></canvas>
+        </div>
+        
+        <div class="textboxes-panel" id="textboxesPanel">
+            <div class="empty-texts-message">⏳ Esperando datos del maestro...</div>
+        </div>
+    </div>
+    
+    <div class="status" id="status"></div>
+    <div class="back-link"><a href="index.html">← Volver al inicio</a></div>
+</div>
+
+<script>
+    const canvas = document.getElementById('mirrorCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 800;
+    canvas.height = 500;
+
+    let ws = null;
+    let currentImage = null;
+    let strokes = [];
+    let currentSlideIndex = 0;
+    let totalSlides = 1;
+    let lastUpdate = Date.now();
+    let backgroundColor = '#ffffff';
+    let currentTexts = [
+        { content: "", visible: true, label: "MSN_1" },
+        { content: "", visible: true, label: "MSN_2" },
+        { content: "", visible: true, label: "MSN_3" }
+    ];
+    
+    // Audio
+    let audioContext = null;
+    let audioEnabled = false;
+    
+    function updateMasterStatus(isConnected) {
+        const masterStatusText = document.getElementById('masterStatusText');
+        const statusDot = document.getElementById('statusDot');
+        if (isConnected) {
+            masterStatusText.innerHTML = 'Maestro conectado ●';
+            statusDot.classList.remove('offline');
+        } else {
+            masterStatusText.innerHTML = 'Maestro desconectado ○';
+            statusDot.classList.add('offline');
+        }
+    }
+    
+    function drawImageFit(img, ctx, canvas) {
+        const imgAspect = img.width / img.height;
+        const canvasAspect = canvas.width / canvas.height;
+        let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+        if (imgAspect > canvasAspect) {
+            drawWidth = canvas.width;
+            drawHeight = canvas.width / imgAspect;
+            offsetY = (canvas.height - drawHeight) / 2;
+        } else {
+            drawHeight = canvas.height;
+            drawWidth = canvas.height * imgAspect;
+            offsetX = (canvas.width - drawWidth) / 2;
+        }
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+    }
+    
+    function drawStroke(s) {
+        ctx.beginPath();
+        ctx.moveTo(s.x0, s.y0);
+        ctx.lineTo(s.x1, s.y1);
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = s.lineWidth;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+    }
+    
+    function fullRedraw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        if (currentImage) {
+            drawImageFit(currentImage, ctx, canvas);
+        } else {
+            ctx.fillStyle = "#666";
+            ctx.font = "14px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("⏳ Esperando al maestro...", canvas.width/2, canvas.height/2);
+        }
+        for(let s of strokes) drawStroke(s);
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+    }
+    
+    function renderTextboxes() {
+        const panel = document.getElementById('textboxesPanel');
+        const visibleTexts = currentTexts.filter(t => t.visible === true);
+        
+        if (visibleTexts.length === 0) {
+            panel.innerHTML = '<div class="empty-texts-message">📭 El maestro no tiene textos visibles</div>';
+            return;
+        }
+        
+        panel.innerHTML = '';
+        visibleTexts.forEach((text, idx) => {
+            const originalIndex = currentTexts.findIndex(t => t === text);
+            const div = document.createElement('div');
+            div.className = 'textbox-card';
+            div.innerHTML = `
+                <span class="textbox-label">📌 ${escapeHtml(text.label || `MSN_${originalIndex + 1}`)}:</span>
+                <input type="text" class="textbox-input" value="${escapeHtml(text.content || '')}" readonly>
+                <button class="copy-btn" data-text="${escapeHtml(text.content || '')}">📋 COPIAR</button>
+            `;
+            panel.appendChild(div);
+        });
+        
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const text = btn.getAttribute('data-text');
+                if(text && text.trim()) {
+                    await navigator.clipboard.writeText(text);
+                    alert('✅ Copiado: ' + text.substring(0, 50));
+                }
+            });
+        });
+    }
+    
+    function updateTextsAndVisibility(texts) {
+        for (let i = 0; i < 3 && i < texts.length; i++) {
+            if (texts[i]) {
+                currentTexts[i] = {
+                    content: texts[i].content || "",
+                    visible: texts[i].visible === true,
+                    label: texts[i].label || ["MSN_1", "MSN_2", "MSN_3"][i]
+                };
+            }
+        }
+        renderTextboxes();
+    }
+    
+    async function playAudioChunk(chunk) {
+        if (!audioEnabled) return;
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            await audioContext.resume();
+        }
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const audioBuffer = await audioContext.decodeAudioData(e.target.result);
+                const source = audioContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(audioContext.destination);
+                source.start();
+            } catch(err) {}
+        };
+        reader.readAsArrayBuffer(chunk);
+    }
+    
+    function conectarWebSocket(salaId, nombre) {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${protocol}//${window.location.host}`);
+        
+        ws.onopen = () => {
+            ws.send(JSON.stringify({ tipo: 'unirse_sala', salaId, nombre }));
+        };
+        
+        ws.onmessage = async (event) => {
+            if (typeof event.data === 'string') {
+                const msg = JSON.parse(event.data);
+                updateMasterStatus(true);
+                lastUpdate = Date.now();
+                
+                if (msg.type === 'full_state') {
+                    totalSlides = msg.data.slides.length;
+                    const currentData = msg.data.slides[msg.data.currentIndex];
+                    currentSlideIndex = msg.data.currentIndex;
+                    document.getElementById('slideIndicator').innerHTML = `📄 Diapositiva ${currentSlideIndex + 1} / ${totalSlides}`;
+                    backgroundColor = currentData.bgColor || '#ffffff';
+                    if (currentData.image) {
+                        const img = new Image();
+                        img.onload = () => { currentImage = img; strokes = [...currentData.strokes]; fullRedraw(); };
+                        img.src = currentData.image;
+                    } else {
+                        currentImage = null; strokes = [...currentData.strokes]; fullRedraw();
+                    }
+                    if (currentData.texts) updateTextsAndVisibility(currentData.texts);
+                    document.getElementById('status').innerHTML = '🟢 Conectado';
+                }
+                else if (msg.type === 'slide_change') {
+                    totalSlides = msg.data.total || msg.data.slides.length;
+                    currentSlideIndex = msg.data.index;
+                    document.getElementById('slideIndicator').innerHTML = `📄 Diapositiva ${currentSlideIndex + 1} / ${totalSlides}`;
+                    backgroundColor = msg.data.bgColor || '#ffffff';
+                    if (msg.data.image) {
+                        const img = new Image();
+                        img.onload = () => { currentImage = img; strokes = [...msg.data.strokes]; fullRedraw(); };
+                        img.src = msg.data.image;
+                    } else {
+                        currentImage = null; strokes = [...msg.data.strokes]; fullRedraw();
+                    }
+                    if (msg.data.texts) updateTextsAndVisibility(msg.data.texts);
+                }
+                else if (msg.type === 'draw') { strokes.push(msg.data.stroke); fullRedraw(); }
+                else if (msg.type === 'reset') { strokes = []; fullRedraw(); }
+                else if (msg.type === 'bg_color') { backgroundColor = msg.data.color; fullRedraw(); }
+                else if (msg.type === 'image_upload') {
+                    const img = new Image();
+                    img.onload = () => { currentImage = img; fullRedraw(); };
+                    img.src = msg.data.dataURL;
+                }
+                else if (msg.type === 'text_change') {
+                    if (msg.data.content !== undefined) currentTexts[msg.data.textboxIndex].content = msg.data.content;
+                    if (msg.data.isVisible !== undefined) currentTexts[msg.data.textboxIndex].visible = msg.data.isVisible;
+                    renderTextboxes();
+                }
+            } else {
+                if (audioEnabled) playAudioChunk(event.data);
+            }
+        };
+        
+        ws.onclose = () => { updateMasterStatus(false); document.getElementById('status').innerHTML = '🔴 Desconectado'; };
+    }
+    
+    setInterval(() => {
+        if (Date.now() - lastUpdate > 5000) updateMasterStatus(false);
+        else updateMasterStatus(true);
+    }, 2000);
+    
+    document.getElementById('exportPngBtn').addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = `espectador.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+    });
+    
+    document.getElementById('unirseBtn').addEventListener('click', () => {
+        const nombre = document.getElementById('nombreInput').value.trim();
+        const codigo = document.getElementById('codigoSalaInput').value.trim();
+        if (!nombre || !codigo) {
+            alert('Ingresa tu nombre y código de sala');
+            return;
+        }
+        document.getElementById('loginPanel').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+        
+        // Botón de audio
+        const audioToggleBtn = document.createElement('button');
+        audioToggleBtn.textContent = '🔇 Activar audio';
+        audioToggleBtn.className = 'btn-audio-toggle';
+        audioToggleBtn.onclick = () => {
+            audioEnabled = !audioEnabled;
+            audioToggleBtn.textContent = audioEnabled ? '🔊 Audio activado' : '🔇 Activar audio';
+            if (audioEnabled && !audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                audioContext.resume();
+            }
+        };
+        document.querySelector('.badge').appendChild(audioToggleBtn);
+        
+        conectarWebSocket(codigo, nombre);
+    });
+    
+    renderTextboxes();
+    fullRedraw();
+</script>
+</body>
+</html>

@@ -1,0 +1,877 @@
+<!-- public/maestro.html - v11 con lista de espectadores conectados -->
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>👑 MAESTRO - Pizarrón v11</title>
+    <style>
+        * { user-select: none; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #1a2a3a, #0f1724);
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container { max-width: 1400px; width: 100%; background: rgba(0,0,0,0.4); border-radius: 2rem; padding: 1.5rem; }
+        
+        h1 { color: #ffd966; text-align: center; margin: 0 0 0.5rem 0; font-size: 1.3rem; }
+        
+        /* Main layout: canvas + panel de espectadores */
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .canvas-area {
+            flex: 3;
+            min-width: 300px;
+        }
+        .spectators-area {
+            flex: 1;
+            min-width: 220px;
+            background: #1e2b24;
+            border-radius: 28px;
+            padding: 15px;
+        }
+        .spectators-area h3 {
+            color: #ffd966;
+            margin-bottom: 15px;
+            font-size: 1rem;
+            border-bottom: 1px solid #3d5a4e;
+            padding-bottom: 8px;
+        }
+        .spectators-list {
+            list-style: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .spectators-list li {
+            background: #2d3e3a;
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            border-radius: 30px;
+            color: #ccc;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .spectators-list li::before {
+            content: "👁️";
+            font-size: 0.8rem;
+        }
+        .spectator-count {
+            background: #4c9f70;
+            color: white;
+            border-radius: 20px;
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            margin-left: 8px;
+        }
+        
+        .slides-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            background: #2c3e2f;
+            padding: 12px 20px;
+            border-radius: 60px;
+            flex-wrap: wrap;
+        }
+        .slide-nav-btn {
+            background: #ffd966;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .slide-nav-btn:hover { background: #ffc107; transform: scale(1.02); }
+        .slide-counter {
+            background: #1e2b24;
+            padding: 8px 20px;
+            border-radius: 40px;
+            color: white;
+            font-weight: bold;
+        }
+        .slide-counter span { color: #ffd966; font-size: 1.3rem; }
+        .slide-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .slide-action-btn {
+            background: #4c9f70;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 40px;
+            cursor: pointer;
+        }
+        .slide-action-btn:hover { background: #3d8a5e; }
+        .danger-btn { background: #e06c6c; }
+        .danger-btn:hover { background: #c24b4b; }
+        
+        .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; justify-content: center; background: #2c3e2f; padding: 12px; border-radius: 60px; }
+        button, .file-label { background: #ffd966; border: none; padding: 8px 18px; border-radius: 40px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
+        button:hover, .file-label:hover { background: #ffc107; }
+        
+        .btn-audio {
+            background: #4c9f70;
+            color: white;
+        }
+        .btn-audio-active {
+            background: #e06c6c;
+            color: white;
+        }
+        
+        .compression-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #1e2b24;
+            padding: 5px 15px;
+            border-radius: 40px;
+        }
+        .compression-control label { color: #ffd966; font-size: 0.8rem; }
+        .quality-value { color: #88ccff; font-weight: bold; }
+        
+        .canvas-wrapper { background: #1E272E; border-radius: 28px; padding: 12px; text-align: center; }
+        canvas { background: white; border-radius: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.3); cursor: crosshair; max-width: 100%; height: auto; }
+        
+        .textboxes-panel {
+            margin-top: 20px;
+            background: #1e2b24;
+            border-radius: 28px;
+            padding: 15px;
+        }
+        .textbox-card {
+            background: #2d3e3a;
+            border-radius: 20px;
+            padding: 12px 15px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            transition: 0.2s;
+        }
+        .textbox-card.hidden { opacity: 0.5; background: #1e2e2a; }
+        .textbox-label {
+            font-weight: bold;
+            color: #ffd966;
+            min-width: 80px;
+            font-size: 0.9rem;
+        }
+        .textbox-input {
+            flex: 3;
+            padding: 10px 15px;
+            border-radius: 40px;
+            border: 1px solid #ffd966;
+            background: #1a2a2a;
+            color: white;
+            font-size: 0.9rem;
+        }
+        .textbox-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .toggle-visibility {
+            background: #4c9f70;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 40px;
+            cursor: pointer;
+            color: white;
+            font-size: 0.8rem;
+        }
+        .toggle-visibility.hide-btn { background: #e06c6c; }
+        
+        input[type="color"] { width: 45px; height: 38px; border-radius: 10px; cursor: pointer; }
+        input[type="range"] { width: 120px; }
+        .status { font-size: 0.75rem; color: #7cb342; text-align: center; margin-top: 10px; }
+        .back-link { text-align: center; margin-top: 15px; }
+        .back-link a { color: #88ccff; text-decoration: none; font-size: 0.8rem; }
+        
+        .slides-list {
+            margin-top: 20px;
+            background: #1e2b24;
+            border-radius: 20px;
+            padding: 12px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .slide-thumb {
+            background: #2d3e3a;
+            padding: 8px 15px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: 0.2s;
+        }
+        .slide-thumb.active {
+            background: #ffd966;
+            color: #2d2b1f;
+            font-weight: bold;
+        }
+        .slide-thumb:hover { background: #ffc107; transform: scale(1.05); }
+        
+        .badge-pro {
+            background: #ffd966;
+            color: #2d2b1f;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            margin-left: 10px;
+        }
+        .codigo-display {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            color: #88ccff;
+        }
+        .codigo-display strong {
+            background: #1e2b24;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-family: monospace;
+            font-size: 1rem;
+        }
+        .audio-status {
+            background: #1e2b24;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>👑 MAESTRO - Sistema de Diapositivas v11</h1>
+    
+    <div class="codigo-display" id="codigoDisplay">🔑 Conectando...</div>
+    
+    <div class="main-layout">
+        <div class="canvas-area">
+            <div class="slides-controls">
+                <button class="slide-nav-btn" id="prevSlideBtn">◀ ANTERIOR</button>
+                <div class="slide-counter">Diapositiva <span id="currentSlideNum">1</span> / <span id="totalSlides">1</span></div>
+                <button class="slide-nav-btn" id="nextSlideBtn">SIGUIENTE ▶</button>
+                <div class="slide-actions">
+                    <button class="slide-action-btn" id="addSlideBtn">➕ Nueva</button>
+                    <button class="slide-action-btn danger-btn" id="deleteSlideBtn">🗑️ Eliminar</button>
+                </div>
+            </div>
+            
+            <div class="slides-list" id="slidesList"></div>
+            
+            <div class="toolbar">
+                <input type="file" id="imageUpload" accept="image/*" style="display:none">
+                <label for="imageUpload" class="file-label">📁 Imagen</label>
+                <button id="resetImageBtn" class="danger-btn">🖼️ Reset Imagen</button>
+                <div class="compression-control">
+                    <label>📊 Calidad:</label>
+                    <input type="range" id="qualitySlider" min="0.3" max="1.0" step="0.05" value="0.8">
+                    <span id="qualityValue" class="quality-value">80%</span>
+                </div>
+                <button id="resetBtn">🗑️ Reiniciar dibujo</button>
+                <button id="exportBtn">💾 Exportar PNG</button>
+                <button id="audioBtn" class="btn-audio">🎤 Iniciar audio</button>
+                <input type="color" id="penColor" value="#ff3366">
+                <label style="color:#ffd966;">✏️</label>
+                <input type="color" id="bgColor" value="#ffffff">
+                <label style="color:#ffd966;">🎨 Fondo</label>
+                <input type="range" id="penSize" min="2" max="40" value="6">
+                <span id="sizeValue" style="color:white;">6px</span>
+            </div>
+            
+            <div class="canvas-wrapper">
+                <canvas id="masterCanvas" width="800" height="500"></canvas>
+            </div>
+            
+            <div class="textboxes-panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <label style="color:#FFE6B0; font-weight: bold;">📝 TEXTOS</label>
+                    <button id="showAllTextsBtn" style="background:#4c9f70; border:none; padding:5px 12px; border-radius:30px; cursor:pointer;">👁️ Mostrar todos</button>
+                </div>
+                
+                <div class="textbox-card" id="textbox1">
+                    <span class="textbox-label">📌 MSN_1:</span>
+                    <input type="text" id="textInput1" class="text-input" placeholder="Mensaje 1...">
+                    <button class="toggle-visibility" data-textbox="0">🙈 Ocultar</button>
+                </div>
+                <div class="textbox-card" id="textbox2">
+                    <span class="textbox-label">📌 MSN_2:</span>
+                    <input type="text" id="textInput2" class="text-input" placeholder="Mensaje 2...">
+                    <button class="toggle-visibility" data-textbox="1">🙈 Ocultar</button>
+                </div>
+                <div class="textbox-card" id="textbox3">
+                    <span class="textbox-label">📌 MSN_3:</span>
+                    <input type="text" id="textInput3" class="text-input" placeholder="Mensaje 3...">
+                    <button class="toggle-visibility" data-textbox="2">🙈 Ocultar</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="spectators-area">
+            <h3>👥 Espectadores conectados <span id="spectatorCount" class="spectator-count">0</span></h3>
+            <ul id="spectatorsList" class="spectators-list">
+                <li style="color:#888;">Esperando conexiones...</li>
+            </ul>
+            <div class="audio-status" id="audioStatus" style="margin-top: 15px; text-align: center;"></div>
+        </div>
+    </div>
+    
+    <div class="status" id="status">🟢 Modo PRO - Compresión activa</div>
+    <div class="back-link"><a href="index.html">← Volver al inicio</a></div>
+</div>
+
+<script>
+    const canvas = document.getElementById('masterCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 800;
+    canvas.height = 500;
+
+    let ws = null;
+    let salaId = null;
+    
+    // Audio
+    let mediaRecorder = null;
+    let audioStream = null;
+    let isAudioActive = false;
+    const audioBtn = document.getElementById('audioBtn');
+    
+    // Estado
+    let slides = [];
+    let currentSlideIndex = 0;
+    let currentColor = '#ff3366', currentSize = 6;
+    let backgroundColor = '#ffffff';
+    let drawing = false, lastX = 0, lastY = 0;
+    let compressionQuality = 0.8;
+    let backgroundImage = null;
+    let strokes = [];
+    
+    // DOM
+    const currentSlideNumSpan = document.getElementById('currentSlideNum');
+    const totalSlidesSpan = document.getElementById('totalSlides');
+    const slidesListDiv = document.getElementById('slidesList');
+    const statusDiv = document.getElementById('status');
+    const qualitySlider = document.getElementById('qualitySlider');
+    const qualityValueSpan = document.getElementById('qualityValue');
+    const bgColorPicker = document.getElementById('bgColor');
+    const spectatorsList = document.getElementById('spectatorsList');
+    const spectatorCountSpan = document.getElementById('spectatorCount');
+    
+    const textInputs = [
+        document.getElementById('textInput1'),
+        document.getElementById('textInput2'),
+        document.getElementById('textInput3')
+    ];
+    const textboxCards = [
+        document.getElementById('textbox1'),
+        document.getElementById('textbox2'),
+        document.getElementById('textbox3')
+    ];
+    
+    function actualizarListaEspectadores(lista) {
+        spectatorCountSpan.innerText = lista.length;
+        if (lista.length === 0) {
+            spectatorsList.innerHTML = '<li style="color:#888;">👁️ Esperando espectadores...</li>';
+            return;
+        }
+        spectatorsList.innerHTML = lista.map(esp => `<li>${escapeHtml(esp.nombre)}</li>`).join('');
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+    }
+    
+    function drawImageFit(img, context, canv) {
+        const imgAspect = img.width / img.height;
+        const canvasAspect = canv.width / canv.height;
+        let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+        if (imgAspect > canvasAspect) {
+            drawWidth = canv.width;
+            drawHeight = canv.width / imgAspect;
+            offsetY = (canv.height - drawHeight) / 2;
+        } else {
+            drawHeight = canv.height;
+            drawWidth = canv.height * imgAspect;
+            offsetX = (canv.width - drawWidth) / 2;
+        }
+        context.fillStyle = backgroundColor;
+        context.fillRect(0, 0, canv.width, canv.height);
+        context.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+    }
+    
+    function drawStroke(s) {
+        ctx.beginPath();
+        ctx.moveTo(s.x0, s.y0);
+        ctx.lineTo(s.x1, s.y1);
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = s.lineWidth;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+    }
+    
+    function fullRedraw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (backgroundImage) {
+            drawImageFit(backgroundImage, ctx, canvas);
+        } else {
+            ctx.fillStyle = "#666";
+            ctx.font = "16px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("🎨 Sube una imagen", canvas.width/2, canvas.height/2);
+        }
+        for(let s of strokes) drawStroke(s);
+    }
+    
+    function updateUI() {
+        currentSlideNumSpan.innerText = currentSlideIndex + 1;
+        totalSlidesSpan.innerText = slides.length;
+        
+        slidesListDiv.innerHTML = '';
+        slides.forEach((slide, idx) => {
+            const thumb = document.createElement('div');
+            thumb.className = 'slide-thumb' + (idx === currentSlideIndex ? ' active' : '');
+            thumb.innerHTML = `📄 ${idx + 1}`;
+            thumb.onclick = () => {
+                saveCurrentSlide();
+                currentSlideIndex = idx;
+                loadSlide(currentSlideIndex);
+                sendFullState();
+            };
+            slidesListDiv.appendChild(thumb);
+        });
+    }
+    
+    function updateTextboxVisibility(index, isVisible) {
+        const card = textboxCards[index];
+        const btn = card.querySelector('.toggle-visibility');
+        if (isVisible) {
+            card.classList.remove('hidden');
+            btn.innerHTML = '🙈 Ocultar';
+            btn.style.background = '#e06c6c';
+        } else {
+            card.classList.add('hidden');
+            btn.innerHTML = '👁️ Mostrar';
+            btn.style.background = '#4c9f70';
+        }
+    }
+    
+    function saveCurrentSlide() {
+        if (slides.length === 0) return;
+        const slide = slides[currentSlideIndex];
+        slide.strokes = [...strokes];
+        slide.bgColor = backgroundColor;
+        for (let i = 0; i < 3; i++) {
+            slide.texts[i] = {
+                content: textInputs[i].value,
+                visible: !textboxCards[i].classList.contains('hidden'),
+                label: ["MSN_1", "MSN_2", "MSN_3"][i]
+            };
+        }
+        if (backgroundImage) {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            drawImageFit(backgroundImage, tempCtx, tempCanvas);
+            slide.image = tempCanvas.toDataURL();
+        } else {
+            slide.image = null;
+        }
+        updateUI();
+    }
+    
+    function loadSlide(index) {
+        if (index < 0 || index >= slides.length) return;
+        currentSlideIndex = index;
+        const slide = slides[currentSlideIndex];
+        
+        backgroundColor = slide.bgColor || '#ffffff';
+        bgColorPicker.value = backgroundColor;
+        
+        if (slide.image) {
+            const img = new Image();
+            img.onload = () => {
+                backgroundImage = img;
+                strokes = [...slide.strokes];
+                fullRedraw();
+            };
+            img.src = slide.image;
+        } else {
+            backgroundImage = null;
+            strokes = [...slide.strokes];
+            fullRedraw();
+        }
+        
+        for (let i = 0; i < 3; i++) {
+            if (slide.texts[i]) {
+                textInputs[i].value = slide.texts[i].content || "";
+                updateTextboxVisibility(i, slide.texts[i].visible);
+            }
+        }
+        
+        updateUI();
+        sendSlideChange();
+    }
+    
+    function sendFullState() {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                tipo: 'accion',
+                accion: 'full_state',
+                data: {
+                    slides: slides.map(s => ({
+                        image: s.image,
+                        strokes: s.strokes,
+                        bgColor: s.bgColor,
+                        texts: s.texts
+                    })),
+                    currentIndex: currentSlideIndex
+                }
+            }));
+        }
+    }
+    
+    function sendSlideChange() {
+        const slide = slides[currentSlideIndex];
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                tipo: 'accion',
+                accion: 'slide_change',
+                data: {
+                    index: currentSlideIndex,
+                    slides: slides,
+                    image: slide.image,
+                    strokes: slide.strokes,
+                    bgColor: slide.bgColor,
+                    texts: slide.texts
+                }
+            }));
+        }
+    }
+    
+    function conectarWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${protocol}//${window.location.host}`);
+        
+        ws.onopen = () => {
+            console.log('🟢 Conectado al servidor');
+            ws.send(JSON.stringify({ tipo: 'crear_sala' }));
+        };
+        
+        ws.onmessage = (e) => {
+            const msg = JSON.parse(e.data);
+            if (msg.tipo === 'sala_creada') {
+                salaId = msg.salaId;
+                document.getElementById('codigoDisplay').innerHTML = `🔑 Código de sala: <strong>${salaId}</strong> <span style="cursor:pointer;" onclick="navigator.clipboard.writeText('${salaId}')">📋</span>`;
+                initSlides();
+            } else if (msg.tipo === 'lista_espectadores') {
+                actualizarListaEspectadores(msg.data);
+                statusDiv.innerHTML = `🟢 ${msg.data.length} espectador(es) conectado(s)`;
+            }
+        };
+    }
+    
+    async function iniciarAudio() {
+        try {
+            audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm' });
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(event.data);
+                }
+            };
+            mediaRecorder.start(100);
+            isAudioActive = true;
+            audioBtn.textContent = '🔴 Detener audio';
+            audioBtn.classList.remove('btn-audio');
+            audioBtn.classList.add('btn-audio-active');
+            document.getElementById('audioStatus').innerHTML = '🎙️ Transmitiendo audio...';
+        } catch(err) {
+            alert('No se pudo acceder al micrófono');
+        }
+    }
+    
+    function detenerAudio() {
+        if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+        if (audioStream) audioStream.getTracks().forEach(track => track.stop());
+        isAudioActive = false;
+        audioBtn.textContent = '🎤 Iniciar audio';
+        audioBtn.classList.remove('btn-audio-active');
+        audioBtn.classList.add('btn-audio');
+        document.getElementById('audioStatus').innerHTML = '';
+    }
+    
+    audioBtn.onclick = () => isAudioActive ? detenerAudio() : iniciarAudio();
+    
+    function initSlides() {
+        if (slides.length === 0) {
+            slides.push({
+                id: Date.now(),
+                image: null,
+                strokes: [],
+                bgColor: '#ffffff',
+                texts: [
+                    { content: "", visible: true, label: "MSN_1" },
+                    { content: "", visible: true, label: "MSN_2" },
+                    { content: "", visible: true, label: "MSN_3" }
+                ]
+            });
+        }
+        updateUI();
+        loadSlide(currentSlideIndex);
+        sendFullState();
+    }
+    
+    async function compressImage(file, quality) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                img.src = e.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const maxWidth = 1024;
+                    let width = img.width, height = img.height;
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const tempCtx = canvas.getContext('2d');
+                    tempCtx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.onerror = reject;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    qualitySlider.addEventListener('input', (e) => {
+        compressionQuality = parseFloat(e.target.value);
+        qualityValueSpan.innerText = Math.round(compressionQuality * 100) + '%';
+    });
+    
+    bgColorPicker.addEventListener('input', (e) => {
+        backgroundColor = e.target.value;
+        fullRedraw();
+        saveCurrentSlide();
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ tipo: 'accion', accion: 'bg_color', data: { color: backgroundColor } }));
+        }
+    });
+    
+    document.getElementById('penColor').addEventListener('input', e => currentColor = e.target.value);
+    document.getElementById('penSize').addEventListener('input', e => {
+        currentSize = parseInt(e.target.value);
+        document.getElementById('sizeValue').innerText = currentSize + 'px';
+    });
+    
+    document.getElementById('resetBtn').addEventListener('click', () => {
+        strokes = [];
+        fullRedraw();
+        saveCurrentSlide();
+        if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ tipo: 'accion', accion: 'reset' }));
+    });
+    
+    document.getElementById('resetImageBtn').addEventListener('click', () => {
+        backgroundImage = null;
+        strokes = [];
+        fullRedraw();
+        saveCurrentSlide();
+        sendSlideChange();
+    });
+    
+    document.getElementById('exportBtn').addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = `diapositiva_${currentSlideIndex + 1}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+    });
+    
+    document.getElementById('imageUpload').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        statusDiv.innerHTML = `🟡 Comprimiendo...`;
+        try {
+            const compressed = await compressImage(file, compressionQuality);
+            const img = new Image();
+            img.onload = () => {
+                backgroundImage = img;
+                strokes = [];
+                fullRedraw();
+                saveCurrentSlide();
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ tipo: 'accion', accion: 'image_upload', data: { dataURL: compressed } }));
+                }
+                statusDiv.innerHTML = `🟢 Imagen lista`;
+            };
+            img.src = compressed;
+        } catch(err) {
+            statusDiv.innerHTML = '🔴 Error';
+        }
+    });
+    
+    let textTimeouts = [null, null, null];
+    for (let i = 0; i < 3; i++) {
+        const idx = i;
+        textInputs[idx].addEventListener('input', (e) => {
+            clearTimeout(textTimeouts[idx]);
+            textTimeouts[idx] = setTimeout(() => {
+                saveCurrentSlide();
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        tipo: 'accion', accion: 'text_change',
+                        data: { textboxIndex: idx, content: e.target.value, isVisible: !textboxCards[idx].classList.contains('hidden') }
+                    }));
+                }
+            }, 300);
+        });
+        
+        const btn = textboxCards[idx].querySelector('.toggle-visibility');
+        btn.addEventListener('click', () => {
+            const newVisible = textboxCards[idx].classList.contains('hidden');
+            updateTextboxVisibility(idx, newVisible);
+            saveCurrentSlide();
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    tipo: 'accion', accion: 'text_change',
+                    data: { textboxIndex: idx, content: textInputs[idx].value, isVisible: newVisible }
+                }));
+            }
+        });
+    }
+    
+    document.getElementById('showAllTextsBtn').addEventListener('click', () => {
+        for (let i = 0; i < 3; i++) {
+            if (textboxCards[i].classList.contains('hidden')) {
+                updateTextboxVisibility(i, true);
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        tipo: 'accion', accion: 'text_change',
+                        data: { textboxIndex: i, content: textInputs[i].value, isVisible: true }
+                    }));
+                }
+            }
+        }
+        saveCurrentSlide();
+    });
+    
+    document.getElementById('prevSlideBtn').addEventListener('click', () => {
+        if (currentSlideIndex > 0) {
+            saveCurrentSlide();
+            currentSlideIndex--;
+            loadSlide(currentSlideIndex);
+            sendSlideChange();
+        }
+    });
+    
+    document.getElementById('nextSlideBtn').addEventListener('click', () => {
+        if (currentSlideIndex < slides.length - 1) {
+            saveCurrentSlide();
+            currentSlideIndex++;
+            loadSlide(currentSlideIndex);
+            sendSlideChange();
+        }
+    });
+    
+    document.getElementById('addSlideBtn').addEventListener('click', () => {
+        saveCurrentSlide();
+        slides.push({
+            id: Date.now(),
+            image: null,
+            strokes: [],
+            bgColor: '#ffffff',
+            texts: [
+                { content: "", visible: true, label: "MSN_1" },
+                { content: "", visible: true, label: "MSN_2" },
+                { content: "", visible: true, label: "MSN_3" }
+            ]
+        });
+        currentSlideIndex = slides.length - 1;
+        loadSlide(currentSlideIndex);
+        sendFullState();
+        statusDiv.innerHTML = `✅ Nueva diapositiva. Total: ${slides.length}`;
+    });
+    
+    document.getElementById('deleteSlideBtn').addEventListener('click', () => {
+        if (slides.length <= 1) {
+            alert('No puedes eliminar la única diapositiva');
+            return;
+        }
+        if (confirm('¿Eliminar esta diapositiva?')) {
+            slides.splice(currentSlideIndex, 1);
+            if (currentSlideIndex >= slides.length) currentSlideIndex = slides.length - 1;
+            loadSlide(currentSlideIndex);
+            sendFullState();
+        }
+    });
+    
+    function getCoords(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        let clientX, clientY;
+        if(e.touches) {
+            if(!e.touches.length) return null;
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        let x = (clientX - rect.left) * scaleX;
+        let y = (clientY - rect.top) * scaleY;
+        return { x: Math.min(Math.max(0,x), canvas.width), y: Math.min(Math.max(0,y), canvas.height) };
+    }
+    
+    function addAndDrawSegment(x0, y0, x1, y1, color, size) {
+        const stroke = { x0, y0, x1, y1, color, lineWidth: size };
+        strokes.push(stroke);
+        drawStroke(stroke);
+        saveCurrentSlide();
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ tipo: 'accion', accion: 'draw', data: { stroke, slideIndex: currentSlideIndex } }));
+        }
+    }
+    
+    function start(e) { e.preventDefault(); drawing = true; const p = getCoords(e); if(p) { lastX = p.x; lastY = p.y; } }
+    function handleDraw(e) {
+        if(!drawing) return; e.preventDefault();
+        const p = getCoords(e); if(!p) return;
+        if(lastX === p.x && lastY === p.y) return;
+        addAndDrawSegment(lastX, lastY, p.x, p.y, currentColor, currentSize);
+        lastX = p.x; lastY = p.y;
+    }
+    function stop() { drawing = false; }
+    
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', handleDraw);
+    canvas.addEventListener('mouseup', stop);
+    canvas.addEventListener('mouseleave', stop);
+    canvas.addEventListener('touchstart', start);
+    canvas.addEventListener('touchmove', handleDraw);
+    canvas.addEventListener('touchend', stop);
+    
+    conectarWebSocket();
+</script>
+</body>
+</html>
