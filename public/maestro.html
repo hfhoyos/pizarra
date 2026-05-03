@@ -1,5 +1,30 @@
 <!-- public/maestro.html - v11 con lista de espectadores conectados -->
 
+<script>
+    window.addEventListener('message', (event) => {
+        if (event.data.type === 'sala_creada') {
+            const salaId = event.data.salaId;
+            // Este es el código que el maestro debe mostrar a los espectadores
+            document.getElementById('codigoDisplay').innerHTML = `🔑 Código de sala: <strong>${salaId}</strong>`;
+            // Inicializar la pizarra con este código
+            initSlides(salaId);
+        }
+    });
+    
+    // Modificar initSlides para recibir salaId
+    function initSlides(salaId) {
+        // Tu código existente, pero usando salaId
+        if (slides.length === 0) {
+            slides.push(createEmptySlide());
+        }
+        updateUI();
+        loadSlide(currentSlideIndex);
+        sendFullState();
+        // Mostrar el código en la interfaz
+        document.getElementById('codigoDisplay').innerHTML = `🔑 Código de sala: <strong>${salaId}</strong> <span style="cursor:pointer;" onclick="navigator.clipboard.writeText('${salaId}')">📋</span>`;
+    }
+</script>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
