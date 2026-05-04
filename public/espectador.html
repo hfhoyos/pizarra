@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👁️ ESPECTADOR - Pizarra + Jitsi</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f1724;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 60px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .logo { font-size: 24px; font-weight: bold; color: #88ccff; }
+        .status { background: #1e2b24; padding: 6px 16px; border-radius: 40px; color: #ffd966; font-size: 14px; }
+        .back-link { color: #88ccff; text-decoration: none; padding: 6px 16px; border-radius: 40px; background: rgba(255,255,255,0.1); }
+        .main-layout { display: flex; gap: 20px; flex-wrap: wrap; }
+        .pizarra-area { flex: 2; min-width: 500px; background: rgba(255,255,255,0.1); border-radius: 32px; overflow: hidden; }
+        .jitsi-area { flex: 1; min-width: 350px; background: #1e1e2e; border-radius: 32px; overflow: hidden; display: flex; flex-direction: column; }
+        .jitsi-header { padding: 16px; background: rgba(0,0,0,0.5); color: white; display: flex; justify-content: space-between; align-items: center; }
+        .jitsi-frame { flex: 1; min-height: 500px; background: #2d3e3a; }
+        .btn-control { background: #4c9f70; border: none; padding: 8px 16px; border-radius: 40px; cursor: pointer; color: white; margin: 12px; }
+        .pizarra-frame { width: 100%; height: 700px; border: none; display: block; }
+        .hidden { display: none; }
+        .login-panel {
+            max-width: 500px; margin: 100px auto; background: rgba(255,255,255,0.1); backdrop-filter: blur(20px);
+            border-radius: 32px; padding: 32px; text-align: center;
+        }
+        .login-panel input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 40px; border: none; background: #1e2b24; color: white; }
+        .login-panel button { background: #4c9f70; color: white; border: none; padding: 12px; border-radius: 40px; cursor: pointer; width: 100%; }
+        @media (max-width: 900px) { .main-layout { flex-direction: column; } }
+    </style>
+    <script src='https://8x8.vc/vpaas-magic-cookie-b74fcf0dc97943ddad2f5fc49881f391/external_api.js'></script>
+</head>
+<body>
+<div id="loginPanel" class="login-panel">
+    <h2 style="color:#ffd966;">🔐 Unirse a sesión</h2>
+    <input type="text" id="nombreInput" placeholder="Tu nombre">
+    <input type="text" id="codigoInput" placeholder="Código de sala">
+    <button id="unirseBtn">🚪 Unirse</button>
+</div>
+
+<div id="salaContent" style="display: none;">
+<div class="container">
+    <div class="header">
+        <div class="logo">👁️ ESPECTADOR</div>
+        <div class="status" id="statusText">Esperando maestro...</div>
+        <a href="index.html" class="back-link">← Salir</a>
+    </div>
+    <div class="main-layout">
+        <div id="pizarraContainer" class="pizarra-area hidden">
+            <iframe id="pizarraFrame" class="pizarra-frame" src="public/espectador.html" allow="camera; microphone; display-capture; fullscreen"></iframe>
+        </div>
+        <div class="jitsi-area">
+            <div class="jitsi-header"><span>📹 Videoconferencia</span></div>
+            <div id="jitsiFrame" class="jitsi-frame"></div>
+            <button id="refreshJitsiBtn" class="btn-control">🔄 Recargar video</button>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+    let ws = null;
+    let jitsiApi = null;
+    let salaIdActual = null;
+
+    function conectarWS(salaId, nombre) {
+        ws = new WebSocket(`wss://${window.location.host}`);
+        ws.onopen = () => {
+            ws.send(JSON.stringify({ tipo: 'identificar', rol: 'espectador' }));
+            ws.send(JSON.stringify({ tipo: 'unirse_sala', salaId: salaId, nombre: nombre }));
+        };
+        ws.onmessage = (e) => {
+            const msg = JSON.parse(e.data);
+            if (msg.tipo === 'full_state') {
+                const pizarraVisible = msg.data.pizarraVisible === true;
+                const container = document.getElementById('pizarraContainer');
+                if (pizarraVisible) container.classList.remove('hidden');
+                else container.classList.add('hidden');
+                document.getElementById('statusText').innerText = pizarraVisible ? 'Pizarra activa' : 'Pizarra oculta';
+            }
+            if (msg.tipo === 'accion' && msg.accion === 'toggle_pizarra') {
+                const container = document.getElementById('pizarraContainer');
+                if (msg.data.visible) container.classList.remove('hidden');
+                else container.classList.add('hidden');
+                document.getElementById('statusText').innerText = msg.data.visible ? 'Pizarra activa' : 'Pizarra oculta';
+            }
+        };
+    }
+
+    function initJitsi(salaId, nombre) {
+        const container = document.getElementById('jitsiFrame');
+        container.innerHTML = '';
+        const options = {
+            roomName: `vpaas-magic-cookie-b74fcf0dc97943ddad2f5fc49881f391/aia-sala-${salaId}`,
+            width: '100%', height: '100%', parentNode: container,
+            userInfo: { displayName: nombre || 'Espectador' },
+            configOverwrite: { startWithVideoMuted: true, startWithAudioMuted: true, disableDeepLinking: true },
+            interfaceConfigOverwrite: { SHOW_JITSI_WATERMARK: false, SHOW_BRAND_WATERMARK: false }
+        };
+        try { jitsiApi = new JitsiMeetExternalAPI("8x8.vc", options); }
+        catch(e) { console.error('Jitsi error'); }
+    }
+
+    document.getElementById('unirseBtn').onclick = () => {
+        const nombre = document.getElementById('nombreInput').value.trim();
+        const codigo = document.getElementById('codigoInput').value.trim();
+        if (!nombre || !codigo) { alert('Ingresa nombre y código'); return; }
+        salaIdActual = codigo;
+        document.getElementById('loginPanel').style.display = 'none';
+        document.getElementById('salaContent').style.display = 'block';
+        conectarWS(codigo, nombre);
+        initJitsi(codigo, nombre);
+    };
+    document.getElementById('refreshJitsiBtn').onclick = () => {
+        if (jitsiApi) jitsiApi.dispose();
+        if (salaIdActual) initJitsi(salaIdActual, 'Espectador');
+    };
+</script>
+</body>
+</html>
