@@ -184,17 +184,20 @@
             }
         }
         
-        pizarraToggle.addEventListener('change', (e) => {
-            const isVisible = e.target.checked;
-            if (isVisible) {
-                pizarraContainer.classList.remove('hidden');
-                console.log('🎨 Pizarra activada');
-            } else {
-                pizarraContainer.classList.add('hidden');
-                console.log('🎨 Pizarra desactivada');
-            }
-            enviarTogglePizarra(isVisible);
-        });
+pizarraToggle.addEventListener('change', (e) => {
+    const isVisible = e.target.checked;
+    const pizarraFrame = document.getElementById('pizarraFrame');
+    const pizarraContainer = document.getElementById('pizarraContainer');
+    
+    if (isVisible) {
+        pizarraContainer.classList.remove('hidden');
+        console.log('🎨 Pizarra MAESTRO visible');
+    } else {
+        pizarraContainer.classList.add('hidden');
+        console.log('🎨 Pizarra MAESTRO oculta');
+    }
+    enviarTogglePizarra(isVisible);
+});
         
         document.getElementById('refreshJitsiBtn').addEventListener('click', () => {
             if (jitsiApi) jitsiApi.dispose();
