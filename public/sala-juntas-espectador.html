@@ -131,12 +131,19 @@
                     else pizarraContainer.classList.add('hidden');
                     maestroStatusSpan.innerHTML = pizarraVisible ? 'Pizarra activa' : 'Pizarra oculta';
                 }
-                if (msg.tipo === 'accion' && msg.accion === 'toggle_pizarra') {
-                    pizarraVisible = msg.data.visible;
-                    if (pizarraVisible) pizarraContainer.classList.remove('hidden');
-                    else pizarraContainer.classList.add('hidden');
-                    maestroStatusSpan.innerHTML = pizarraVisible ? 'Pizarra activa' : 'Pizarra oculta por el maestro';
-                }
+                // Cuando recibes el toggle del servidor
+if (msg.tipo === 'accion' && msg.accion === 'toggle_pizarra') {
+    pizarraVisible = msg.data.visible;
+    const pizarraContainer = document.getElementById('pizarraContainerEspectador');
+    if (pizarraContainer) {
+        if (pizarraVisible) {
+            pizarraContainer.classList.remove('hidden');
+        } else {
+            pizarraContainer.classList.add('hidden');
+        }
+    }
+    maestroStatusSpan.innerHTML = pizarraVisible ? 'Pizarra activa' : 'Pizarra oculta';
+}
             };
         }
         
